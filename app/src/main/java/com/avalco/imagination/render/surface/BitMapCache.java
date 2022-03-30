@@ -1,4 +1,4 @@
-package com.avalco.imagination.render.base;
+package com.avalco.imagination.render.surface;
 
 import android.graphics.Bitmap;
 import android.graphics.Matrix;

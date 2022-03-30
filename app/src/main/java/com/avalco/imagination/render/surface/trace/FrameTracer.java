@@ -1,18 +1,14 @@
-package com.avalco.imagination.render.base.trace;
+package com.avalco.imagination.render.surface.trace;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Avalco

@@ -10,26 +10,24 @@ import android.graphics.RectF;
 import android.os.Build;
 import android.util.DisplayMetrics;
 import android.view.SurfaceHolder;
-import android.view.Window;
 import android.view.WindowMetrics;
 
 import androidx.annotation.NonNull;
 
-import com.avalco.imagination.render.base.BaseDrawableSurfaceView;
-import com.avalco.imagination.render.base.BitMapCache;
-import com.avalco.imagination.render.base.DrawableArea;
-import com.avalco.imagination.utils.LogUtil;
+import com.avalco.imagination.render.surface.BaseDrawableSurfaceView;
+import com.avalco.imagination.render.surface.BitMapCache;
+import com.avalco.imagination.render.surface.DrawableArea;
+
+import com.avalco.imagination.render.surface.utils.SurfaceUtils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.util.LinkedList;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * @author Avalco
@@ -55,12 +53,18 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
              int nFps=getFrameTracer().getFps();
              if (nFps!=fps&&System.currentTimeMillis()-before>500){
                  fps=nFps;
-                  before=System.currentTimeMillis();
+                 before=System.currentTimeMillis();
              }
+             //
             String text="FPS: "+fps;
-            Paint.FontMetrics fontMetrics=paint.getFontMetrics();
-            float textWidth= paint.measureText(text);
-            canvas.drawText(text,0,600,paint);
+            SurfaceUtils.drawText(canvas,text, (int) (screenWidth-paint.measureText(text)),top,paint);
+        }
+
+        @Override
+        public void clear() {
+            super.clear();
+            fps=0;
+            drawableAreas.clear();
         }
     };
     ImageDrawableArea drawableAreas ;
@@ -68,10 +72,11 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
     private final Object lock=new Object();
     private final int capacity=3;
     private final ThreadFactory mainThreadFactory=new ThreadFactoryBuilder().setNameFormat("ImageEditSurfaceView-preLoad-thread-%d").build();
-    private  ExecutorService preLoadService;
+    private ExecutorService preLoadService;
     BitMapCache cachedBitmap;
     private int screenWidth;
     private int screenHeight;
+    private int top;
     public ImageEditSurfaceView(@NonNull Context context) {
         super(context);
         bitmaps=new ConcurrentLinkedQueue<>();
@@ -80,6 +85,7 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
           WindowMetrics windowMetrics=((Activity)(context)).getWindowManager().getCurrentWindowMetrics();
           screenHeight=windowMetrics.getBounds().height();
           screenWidth=windowMetrics.getBounds().width();
+          top=context.getDisplay().getCutout().getBoundingRectTop().bottom;
         }
         else {
             DisplayMetrics displayMetrics=new DisplayMetrics();
@@ -101,6 +107,8 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
         super.onSurfaceDestroyed(holder);
         preLoadService.shutdownNow();
         bitmaps.clear();
+        cachedBitmap=null;
+        rootDrawable.clear();
         getFrameTracer().stopTrace();
     }
 

@@ -1,28 +1,28 @@
-package com.avalco.imagination.render.base;
+package com.avalco.imagination.render.surface;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 
+import androidx.annotation.CallSuper;
 import androidx.annotation.Nullable;
 
-import com.avalco.imagination.render.base.interfaces.DrawMethod;
-import com.avalco.imagination.utils.LogUtil;
+import com.avalco.imagination.render.surface.interfaces.DrawMethod;
 
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * @author Avalco
  */
 public abstract class DrawableArea implements DrawMethod {
     RectF area;
-    LinkedList<DrawableArea> drawableAreas =new LinkedList<>();
+    ConcurrentLinkedQueue<DrawableArea> drawableAreas;
    protected Paint paint;
    private DrawMethod drawMethod;
     protected abstract void initPaint();
 
-    public DrawableArea(RectF area, @Nullable LinkedList<DrawableArea> drawableAreas) {
+    public DrawableArea(RectF area, @Nullable ConcurrentLinkedQueue<DrawableArea> drawableAreas) {
         this.area = area;
         this.drawableAreas = drawableAreas;
         drawMethod=this;
@@ -54,8 +54,11 @@ public abstract class DrawableArea implements DrawMethod {
 
     private void drawNext(Canvas canvas) {
         if (drawableAreas!=null){
-            int l=drawableAreas.size();
-            for (int i=0;i<l;i++){
+//            int l=drawableAreas.size();
+            for (DrawableArea d : drawableAreas) {
+                d.draw(canvas);
+            }
+           /* for (int i=0;i<l;i++){
                 try {
                     drawableAreas.get(i).draw(canvas);
                 }
@@ -63,19 +66,19 @@ public abstract class DrawableArea implements DrawMethod {
                     //
                     LogUtil.logD("DrawableArea","ConCurrentException :"+e.getMessage());
                 }
-            }
+            }*/
         }
     }
 
-    public LinkedList<DrawableArea> getDrawableAreas() {
+    public ConcurrentLinkedQueue<DrawableArea> getDrawableAreas() {
         return drawableAreas;
     }
-    public void setDrawableAreas(LinkedList<DrawableArea> drawableAreas) {
+    public void setDrawableAreas(ConcurrentLinkedQueue<DrawableArea> drawableAreas) {
         this.drawableAreas = drawableAreas;
     }
     public final void addDrawableArea(DrawableArea drawableArea){
         if (drawableAreas==null){
-            drawableAreas=new LinkedList<>();
+            drawableAreas=new ConcurrentLinkedQueue<>();
         }
         drawableAreas.offer(drawableArea);
     }
@@ -87,5 +90,11 @@ public abstract class DrawableArea implements DrawMethod {
 
     public void setDrawable(DrawMethod selfDrawable) {
         this.drawMethod = selfDrawable;
+    }
+    @CallSuper
+    public  void clear(){
+        if (drawableAreas!=null){
+            drawableAreas.clear();
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.avalco.imagination.render.base;
+package com.avalco.imagination.render.surface;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -8,8 +8,8 @@ import android.view.SurfaceView;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 
-import com.avalco.imagination.render.base.lifecycle.SurfaceLifeCycle;
-import com.avalco.imagination.render.base.trace.FrameTracer;
+import com.avalco.imagination.render.surface.lifecycle.SurfaceLifeCycle;
+import com.avalco.imagination.render.surface.trace.FrameTracer;
 import com.avalco.imagination.utils.LogUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 

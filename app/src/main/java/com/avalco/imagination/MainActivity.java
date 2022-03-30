@@ -4,7 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
+
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -26,19 +26,13 @@ import android.view.WindowManager;
 import android.view.WindowMetrics;
 import android.widget.FrameLayout;
 
-import com.avalco.imagination.render.base.DrawableArea;
-import com.avalco.imagination.render.base.Point;
+import com.avalco.imagination.render.surface.DrawableArea;
+
 import com.avalco.imagination.render.image.ImageEditSurfaceView;
-import com.avalco.imagination.utils.LogUtil;
+
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
-
 
 /**
  * @author Avalco

@@ -3,6 +3,9 @@ package com.avalco.imagination.render.base.trace;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
@@ -24,14 +27,12 @@ public class FrameTracer implements Runnable{
     int fps;
     private final int maxCacheSize=100;
     private final AtomicBoolean tracing;
-    private final AtomicInteger cacheSize;
-    LinkedList<Integer> cachePoints;
+    ConcurrentLinkedDeque<Integer> cachePoints;
     private final ThreadFactory mainThreadFactory=new ThreadFactoryBuilder().setNameFormat("Tracer-fps-Thread-%d").build();
     private final ExecutorService executorService;
     public FrameTracer() {
         tracing =new AtomicBoolean(false);
-        cacheSize=new AtomicInteger(0);
-        cachePoints=new LinkedList<>();
+        cachePoints=new ConcurrentLinkedDeque<>();
         fps=0;
         executorService=new ThreadPoolExecutor(1,1,0, TimeUnit.MILLISECONDS,new LinkedBlockingDeque<>(1),mainThreadFactory);
     }
@@ -50,7 +51,6 @@ public class FrameTracer implements Runnable{
             return;
         }
         cachePoints.offer(deltaTime);
-        cacheSize.getAndIncrement();
     }
     private void traceFrame(int deltaTime){
         ++frameCount;
@@ -71,13 +71,12 @@ public class FrameTracer implements Runnable{
     @Override
     public void run() {
         while (tracing.get()&&!executorService.isShutdown()){
-            if (cacheSize.get()>0){
+            if (!cachePoints.isEmpty()){
                 Integer i=cachePoints.poll();
                 if (i==null){
                     continue;
                 }
                 int deltaT=i;
-                cacheSize.getAndDecrement();
                 traceFrame(deltaT);
             }
         }

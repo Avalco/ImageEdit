@@ -22,6 +22,8 @@ import com.avalco.imagination.utils.LogUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
@@ -34,6 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
     private final DrawableArea rootDrawable=new DrawableArea(new RectF(0,0,0,0),null) {
+        long before=0;
+        int fps;
         @Override
         protected void initPaint() {
             paint=new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -48,17 +52,19 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
 
         @Override
         public void drawFront(Canvas canvas) {
-            String text="FPS: "+getFrameTracer().getFps();
+             int nFps=getFrameTracer().getFps();
+             if (nFps!=fps&&System.currentTimeMillis()-before>500){
+                 fps=nFps;
+                  before=System.currentTimeMillis();
+             }
+            String text="FPS: "+fps;
             Paint.FontMetrics fontMetrics=paint.getFontMetrics();
             float textWidth= paint.measureText(text);
-            canvas.drawText(text,0,100,paint);
+            canvas.drawText(text,0,600,paint);
         }
     };
     ImageDrawableArea drawableAreas ;
-    final AtomicInteger cacheSize;
-    final AtomicInteger cacheQueueSize;
-    final LinkedList<BitMapCache> bitmaps;
-    final LinkedList<BitMapCache> bitmapCacheQueue;
+    final ConcurrentLinkedQueue<BitMapCache> bitmaps;
     private final Object lock=new Object();
     private final int capacity=3;
     private final ThreadFactory mainThreadFactory=new ThreadFactoryBuilder().setNameFormat("ImageEditSurfaceView-preLoad-thread-%d").build();
@@ -68,11 +74,8 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
     private int screenHeight;
     public ImageEditSurfaceView(@NonNull Context context) {
         super(context);
-        bitmaps=new LinkedList<>();
-        bitmapCacheQueue=new LinkedList<>();
+        bitmaps=new ConcurrentLinkedQueue<>();
         drawableAreas=new ImageDrawableArea(new RectF(0,0,0,0),null);
-        cacheSize=new AtomicInteger(0);
-        cacheQueueSize=new AtomicInteger(0);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
           WindowMetrics windowMetrics=((Activity)(context)).getWindowManager().getCurrentWindowMetrics();
           screenHeight=windowMetrics.getBounds().height();
@@ -97,10 +100,7 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
     public void onSurfaceDestroyed(@NonNull SurfaceHolder holder) {
         super.onSurfaceDestroyed(holder);
         preLoadService.shutdownNow();
-        cacheSize.set(0);
-        cacheQueueSize.set(0);
         bitmaps.clear();
-        bitmapCacheQueue.clear();
         getFrameTracer().stopTrace();
     }
 
@@ -112,10 +112,9 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
 
     @Override
     public void drawCanvas(Canvas canvas) {
-        if (bitmaps!=null&&cacheSize.get()>0)
+        if (bitmaps!=null&&!bitmaps.isEmpty())
         {
             cachedBitmap=bitmaps.poll();
-            cacheSize.getAndDecrement();
         }
         if(cachedBitmap!=null&&!cachedBitmap.get().isRecycled()){
             canvas.drawBitmap(cachedBitmap.get(),cachedBitmap.matrix,null);
@@ -125,9 +124,11 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
        @Override
        public void run() {
            while (!preLoadService.isShutdown()) {
-               while (cacheSize.get()>=capacity){
+               while (bitmaps.size()>=capacity){
                try {
-                       Thread.sleep(20);
+                   synchronized (lock){
+                       lock.wait(20);
+                   }
                } catch (InterruptedException e) {
                        e.printStackTrace();
                }
@@ -140,10 +141,8 @@ public class ImageEditSurfaceView extends BaseDrawableSurfaceView {
                    bitmap=cachedBitmap;
                }
                BitMapCache newBitMap=new BitMapCache(bitmap.get().copy(Bitmap.Config.ARGB_8888,true));
-               newBitMap.matrix.preScale((float)screenWidth/newBitMap.get().getWidth(),(float)screenHeight/newBitMap.get().getHeight());
                rootDrawable.draw(new Canvas(newBitMap.get()));
                bitmaps.offer(newBitMap);
-               cacheSize.getAndIncrement();
            }
        }
    };

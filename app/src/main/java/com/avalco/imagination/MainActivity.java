@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -14,6 +15,7 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
@@ -21,6 +23,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import android.view.WindowManager;
+import android.view.WindowMetrics;
 import android.widget.FrameLayout;
 
 import com.avalco.imagination.render.base.DrawableArea;
@@ -30,7 +33,11 @@ import com.avalco.imagination.utils.LogUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
-
+import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -39,6 +46,8 @@ import java.io.InputStream;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ImageEditSurfaceView rootView;
+    private int screenWidth;
+    private int screenHeight;
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +60,17 @@ public class MainActivity extends AppCompatActivity {
         rootView=new ImageEditSurfaceView(this);
         FrameLayout.LayoutParams rootLayoutParams=new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         setContentView(rootView,rootLayoutParams);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowMetrics windowMetrics=getWindowManager().getCurrentWindowMetrics();
+            screenHeight=windowMetrics.getBounds().height();
+            screenWidth=windowMetrics.getBounds().width();
+        }
+        else {
+            DisplayMetrics displayMetrics=new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+            screenWidth=displayMetrics.widthPixels;
+            screenHeight=displayMetrics.heightPixels;
+        }
     }
 
     @Override
@@ -76,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
             AssetManager assetManager=getAssets();
             InputStream inputStream =assetManager.open("test.png");
             image=BitmapFactory.decodeStream(inputStream).copy(Bitmap.Config.ARGB_8888,true);
-            rootView.getDrawableAreas().setImage(image);
+            rootView.getDrawableAreas().setImage(Bitmap.createScaledBitmap(image,screenWidth,screenHeight,false));
         } catch (IOException e) {
             e.printStackTrace();
         }
